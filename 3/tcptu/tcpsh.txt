@@ -1,0 +1,29 @@
+time=`date +"%Y-%m-%d %H:%M"`
+nowRecv=`netstat --statistics -tcp | grep 'segments received' | awk 'NR==1{print $1}'`
+nowSend=`netstat --statistics -tcp | grep 'segments sent out' | awk 'NR==1{print $1}'`
+nowTotal=0
+count=0
+lastTotal=0
+while true
+	do
+      count=`expr $count + 1`
+      nowTotal=`expr $nowRecv + $nowSend`
+      
+      totalDiff=`expr $nowTotal - $lastTotal`
+	if [ $count -eq 1 ]
+		then sign=" "
+      elif [ $totalDiff -gt 10 ]
+		then sign="+"
+      elif [ $totalDiff -lt -10 ]
+		then sign="-"
+      else
+		sign=" "
+      fi
+ 
+      printf "%-s %-s%10s%10s%10s%10s\n" $time $nowRecv $nowSend $nowTotal $sign
+	sleep 60
+	time=`date +"%Y-%m-%d %H:%M"`
+	lastTotal=$nowTotal
+      nowRecv=`netstat --statistics -tcp | grep 'segments received' | awk 'NR==1{print $1}'`
+      nowSend=`netstat --statistics -tcp | grep 'segments sent out' | awk 'NR==1{print $1}'`
+done

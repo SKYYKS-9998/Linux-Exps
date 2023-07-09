@@ -1,0 +1,70 @@
+page_num1=$1
+page_num2=$2
+
+if [ -z $1 ];then
+page_num1=1
+fi
+if [ -z $2 ];then
+page_num2=218
+fi
+
+if [ ! -f pageurl.txt ]
+then touch pageurl.txt
+fi
+
+#处理 url，获取图片信息
+for i in `seq $page_num1 $page_num2`
+do
+flag=0
+for curpage in `cat pageurl.txt`
+do
+	[ $i = $curpage ] && flag=1
+done
+echo $flag
+[ $flag -eq 0 ] && {
+echo $i >> pageurl.txt
+wget -O tmp_page$i.txt -c https://bing.ioliu.cn/?p=$i -o /dev/null
+mv tmp_page$i.txt page$i.txt
+echo "当前处理第$i页数据"
+
+#获取图片连接
+cat page$i.txt | grep -Eo '<img[^>]*src="https://[^"]*[^"]*"[^>]*>' | grep -Eo 'src="[^"]*"' | sed 's/src="//g' | sed 's/"//g' >> imageUrl.txt
+
+#获取图片名称
+cat page$i.txt | grep -Eo '<h3>(.|\n)*?</h3>' | sed 's/<[^>]*>/ /g' | sed 's/([^)]*)/ /g' | sed 's/分享/\n/g' | sed 's/[0-9a-zA-Z]*/ /g' | sed 's/- -/ /g' | sed 's/\ //g' >> imageName.txt
+
+#获取图片日期
+cat page$i.txt | grep -o '20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]' >> imageDate.txt
+
+rm page$i.txt
+}
+done
+
+path="bing"
+if [ ! -d "./$path" ]; then
+mkdir "./$path"
+fi
+
+a=0
+for line in `cat imageUrl.txt | uniq`
+do
+url=$line
+urls[$a]=$name
+a=`expr $a + 1`
+done
+
+b=0
+for line in `sort -r imageDate.txt`
+do
+time=$line
+times[$b]=$time
+b=`expr b + 1`
+done
+
+i=0;
+for name in `cat imageName.txt`
+do
+curl -o ./$path/${times[$i]}" "$name".png" ${urls[$i]}
+i=`expr $i + 1`
+echo "当前下载第$i个图片"
+done
